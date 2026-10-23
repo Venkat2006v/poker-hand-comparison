@@ -100,14 +100,17 @@ A request is handled in three steps:
 **Responses and errors**
 
 - **`results` lists every hand**, not just the winners, so the caller can see why each hand won or lost. Order matches the request.
+- **For 7-card hands, only the best five are returned** in `bestFive`. The two unused cards don't affect the result, and the caller already has them.
 - **The best five cards are always shown the same way.** If two cards of the same rank could fill a spot, the lower suit is used (C, D, H, S).
 - **Every invalid request returns HTTP 400** with one `error` message for the first problem found. 400 fits because each case is a mistake in the request itself, and a single status keeps error handling simple.
 
 ## Improvements with more time
 
-- Add the remaining poker categories (flush, full house, four of a kind, straight flush) — the category + tiebreak-ranks model extends to them directly.
-- Return a human-readable description of each hand (e.g. "Pair of Queens, kickers 9, 4, 2") alongside the category.
 - Replace `IllegalArgumentException` with a dedicated validation exception, and add a catch-all handler so unexpected errors return a JSON 500 rather than leaking as 400s.
+- Return all validation errors at once, and refer to hands by player name rather than "hand at index 0".
+- Add the remaining poker categories (flush, full house, four of a kind, straight flush). The category and tiebreak-ranks model extends to them directly.
+- Return a stable category code (e.g. `PAIR`) alongside the display label, so clients don't depend on label text.
+- Return a human-readable description of each hand (e.g. "Pair of Queens, kickers 9, 4, 2") alongside the category.
 - Optionally reject the same card appearing across different hands, if the API should model a single shared deck.
+- Add request tracing and logging: an `X-Request-Id` header carried through the SLF4J MDC, with rejected requests logged at WARN.
 - Add a Maven wrapper so the project builds without a local Maven install.
-- Add request tracing and logging if the service runs alongside others: accept or generate an `X-Request-Id` header in a servlet filter, put it in the SLF4J MDC so every log line carries it, and echo it in the response. Log rejected requests at WARN and per-hand evaluations at DEBUG.
